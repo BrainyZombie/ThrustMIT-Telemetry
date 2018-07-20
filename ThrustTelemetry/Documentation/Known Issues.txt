@@ -1,0 +1,2 @@
+Known Issues:
+1) Having cursor over the graph area while data from a file is being loaded will lead to crash
