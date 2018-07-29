@@ -19,8 +19,29 @@ public:
     ~PlotAndDump();
     int mode;
     ParsedDataStorage* data;
+    QVector<double> X;
+    QVector<double> Y;
+    QVector<double> Z;
+    QVector<double> W;
+    QVector<double> T;
+    int total2=0;
+    int lenTarget;
+    QPen *a;
+    QCPRange range;
+    float lower;
+    float upper;
+    int position;
 
+    enum windowMode{
+        in,
+        out
+    } currentWindowMode;
     
+    PlotAndDump(PlotAndDump *src);
+
+signals:
+    void toggleWindowMode(PlotAndDump*);
+
 public slots:
     void plot();
     void addTag(QString, double);
@@ -45,26 +66,10 @@ private slots:
 
     void updateMousePosition(QMouseEvent *event);
     void legendClick2(QCPLegend *, QCPAbstractLegendItem *, QMouseEvent *);
+
+    void on_windowModeToggleButton_clicked();
+
 private:
-    Ui::PlotAndDump *ui;
-    QVector<double> X;
-    QVector<double> Y;
-    QVector<double> Z;
-    QVector<double> W;
-    QVector<double> T;
-    int total2=0;
-    int lenTarget;
-    QPen *a;
-    QCPRange range;
-    float lower;
-    float upper;
-    int position;
-    int mouseX = 0, mouseY = 0;
-    QPointer<QCPGraph> graph[3];
-    AxisTag* tag[3];
-    AxisTag* mouseTag[3];
-
-
     void updateMouseTags();
     void graphAreaSetup(ParsedDataStorage* data);
     void UISetup();
@@ -73,6 +78,14 @@ private:
     void updateAxisTags();
     void updateUIRanges();
     void plotGraph();
+
+    int mouseX = 0, mouseY = 0;
+    Ui::PlotAndDump *ui;
+    QPointer<QCPGraph> graph[3];
+    AxisTag* tag[3];
+    AxisTag* mouseTag[3];
+    const QIcon *toggleWindowModeIcon;
+
 };
 
 #endif // PLOTANDDUMP_H

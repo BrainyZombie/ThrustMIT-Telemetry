@@ -1,6 +1,6 @@
  #include "stringparser.h"
 
-StringParser::StringParser(long long int time)
+StringParser::StringParser(long long int time, QString source)
 {
     serialData="";
     serialData2="";
@@ -9,11 +9,14 @@ StringParser::StringParser(long long int time)
     ok=true;
     loopTime = time;
     loopNo = 0;
+    this->source = source;
+    gpsParser = nullptr;
+    gpsData = nullptr;
 }
 
 void StringParser::writeRaw(){
     if (file==NULL){
-        file= new QFile(data.fileLocation+"RAW.txt");
+        file= new QFile(data.fileLocation+"RAW");
         file->open(QIODevice::ReadWrite | QIODevice::Append);
     }
     if(stream==NULL){
@@ -40,6 +43,8 @@ void StringParser::read(int mode){
         T=serialData.indexOf('T');
         W=serialData.indexOf('W');
         nextLine=serialData.indexOf('\n');
+        GPS=serialData.left(nextLine+1).indexOf("$GP");
+
 
         if (sensor==4&&X==5&&Y>X&&Z>Y&&T>Z&&nextLine>T){
             flag=1;
@@ -61,7 +66,7 @@ void StringParser::read(int mode){
                     map[currentStream]=new dataPoint;
                     current = map[currentStream];
                     current->mode=flag;
-                    current->data=new ParsedDataStorage(data.fileLocation+currentStream+".txt");
+                    current->data=new ParsedDataStorage(source+":"+currentStream);
                     current->graph=NULL;
                     emit(newGraph(flag+mode, this, current->data, &current->graph));
                     int l;
@@ -106,6 +111,8 @@ void StringParser::read(int mode){
             else if (flag==0){
             a:  QString midData =serialData.mid(0,nextLine+1);
                 emit otherData(midData);
+
+                //handling of adding tag
                 delim1=midData.indexOf('[');
                 delim2=midData.indexOf(']');
                 if (delim1!= -1 && delim2 != -1) {
@@ -114,6 +121,24 @@ void StringParser::read(int mode){
                     if (mode == 1){
                         QThread::msleep(10);
                     }
+                }
+
+
+                //handling of GPS data
+                qDebug()<<GPS<<nextLine;
+                if (GPS<nextLine && GPS!=-1){
+                    if (gpsParser==nullptr){
+                        gpsData = new GPSDataStorage();
+                        gpsParser = new GPSParser(gpsData, data.fileLocation);
+                        gpsThread = new QThread();
+                        gpsParser->moveToThread(gpsThread);
+                        connect(this, SIGNAL(gpsWritten()), gpsParser, SLOT(gpsParse()));
+                        gpsThread->start();
+                    }
+                    while (!gpsData->write(serialData.mid(GPS,nextLine-GPS)))
+                        QThread::usleep(1);
+
+                    emit(gpsWritten());
                 }
             }
             serialData.remove(0,nextLine+1);

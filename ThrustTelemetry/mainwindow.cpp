@@ -6,58 +6,19 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    Q_INIT_RESOURCE(resources);
+    QPixmap Logo(":/logo.png");
+    QPixmap Logo2(":/logo2.png");
+    ui->logo->setPixmap(Logo);
+    ui->logo2->setPixmap(Logo2);
     port=NULL;
     data = new DataStorage;
-
-
-    QObject *parent2;
-        QString program = "C:/Program Files/Google/Google Earth Pro/client/googleearth.exe";
-        QStringList arguments;
-
-        QProcess *myProcess = new QProcess(parent2);
-        myProcess->start(program, arguments);
-}
-
-void MainWindow::on_RealTime_clicked()
-{
-    //display a window to collect data for serial plotting
-    SerialInitial* a= new SerialInitial(this);
-    connect(a,SIGNAL(serialConfig(Serial*,QString,int,QString, long long int)),this,SLOT(setSerialConfig(Serial*,QString,int,QString, long long int)));
-    a->setModal(true);
-    a->show();
-}
-
-void MainWindow::setSerialConfig(Serial* port,QString portName, int baudRate, QString fileLocation, long long int loopTime){
-
-    this->port=port;
-
-    if (port==NULL)
-        QMessageBox::about(this, "Error","Invalid Serial Config");
-
-    else{
-        DataStorage::fileLocation=fileLocation;
-
-        //creating string parser
-        parser = new StringParser(loopTime);
-
-
-        //connecting signals and slots
-        connect(port,SIGNAL(written(int)),parser,SLOT(read(int)));  //Signal-slot to fascilitate serial telling the stringparse to read
-        connect(parser,StringParser::newGraph,this,MainWindow::newGraph);   //Signal-slot to let stringParser to instruct mainwindow to create a new graph
-        connect(parser,StringParser::otherData,this,MainWindow::otherData);
-
-        port->start(portName, baudRate);
-    }
+    resize(QGuiApplication::primaryScreen()->availableSize()*4/5);
 }
 
 void MainWindow::on_File_clicked(){
-    //create new dialog box for setting file parameters
-    FileInitial* a= new FileInitial(this);
-
-    //connect it to corresponding slot in mainWindow
-    connect(a,SIGNAL(fileConfig(QList<QUrl>)),this,SLOT(setFileConfig(QList<QUrl>)));
-    a->setModal(true);
-    a->show();
+    QList<QUrl> files =QFileDialog::getOpenFileUrls(nullptr,QString(),QUrl(),"*");                                       //open dialog to select multiple files with ".txt" extension
+    setFileConfig(files);     //pass the files selected
 }
 
 
@@ -65,7 +26,7 @@ void MainWindow::on_File_clicked(){
 void MainWindow::setFileConfig(QList<QUrl> files){
 
     //process each file one by one
-    for (auto e: files){
+    for (QUrl e: files){
         stringParserThread = new QThread;
         file = new QFile(e.toLocalFile());
         file->open(QIODevice::ReadWrite);
@@ -74,10 +35,10 @@ void MainWindow::setFileConfig(QList<QUrl> files){
         QString checkLoopTime = file->readLine();
 
         if (checkLoopTime.contains("Time:")){
-            parser = new StringParser(checkLoopTime.mid(5).toLongLong());
+            parser = new StringParser(checkLoopTime.mid(5).toLongLong(),e.fileName());
         }
         else{
-            parser = new StringParser(0);
+            parser = new StringParser(0, e.fileName());
         }
 
         //create a string parser and move it to a new thread to improve efficiency
@@ -93,19 +54,21 @@ void MainWindow::setFileConfig(QList<QUrl> files){
         connect(this,SIGNAL(done(int)),parser,SLOT(read(int)));
 
         stringParserThread->start();
-        file->open(QIODevice::ReadOnly);
 
         //read the whole file and send it to the parser
         while(!data->serialRawWrite(file->readAll()));
         emit done(2);
         data = new DataStorage;
+        file->close();
     }
 }
 
 
 void MainWindow::newGraph(int mode, StringParser* parser, ParsedDataStorage* data, PlotAndDump** dest){
     PlotAndDump* plot = new PlotAndDump(mode,data);
+    ui->tabWidget->addTab(plot,data->source);
     connect(this, SIGNAL(closed()), plot, SLOT(quit()));
+    connect(plot,SIGNAL(toggleWindowMode(PlotAndDump*)), this, SLOT(toggleWindowModes(PlotAndDump*)));
     connect(parser, SIGNAL(addTag(QString, double)), plot, SLOT(addTag(QString, double)));
     connect(parser,SIGNAL(plot()), plot, SLOT(plot()));
     *dest=plot;
@@ -117,11 +80,101 @@ void MainWindow::closeEvent(QCloseEvent *event){
 }
 
 void MainWindow::otherData(QString data){
-    if (!ui->widget_2->isEnabled()){
-        ui->widget_2->setEnabled(true);
-        ui->unplottedData->setEnabled(true);
-        ui->widget_2->setSizePolicy(QSizePolicy::Minimum,QSizePolicy::Minimum);
-        ui->unplottedData->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
+
+    if (unplottedData == nullptr){
+        unplottedData = new QPlainTextEdit();
+        ui->tabWidget->addTab(unplottedData, "Unparsable data");
     }
-    ui->unplottedData->setPlainText(ui->unplottedData->toPlainText()+data);
+    unplottedData->appendPlainText(data);
+}
+
+void MainWindow::launchMap()
+{
+    QObject *parent2 = new QObject();
+    QString program = "C:/Program Files/Google/Google Earth Pro/client/googleearth.exe";
+    QStringList arguments;
+
+    QProcess *myProcess = new QProcess(parent2);
+    myProcess->start(program, arguments);
+}
+
+void MainWindow::toggleWindowModes(PlotAndDump *src)
+{
+    qDebug()<<1;
+    disconnect(this, SIGNAL(closed()), src, SLOT(quit()));
+    disconnect(src,SIGNAL(toggleWindowMode(PlotAndDump*)), this, SLOT(toggleWindowModes(PlotAndDump*)));
+    disconnect(parser, SIGNAL(addTag(QString, double)), src, SLOT(addTag(QString, double)));
+    disconnect(parser,SIGNAL(plot()), src, SLOT(plot()));
+    PlotAndDump* plot2 = new PlotAndDump(src);
+
+    connect(this, SIGNAL(closed()), plot2, SLOT(quit()));
+    connect(plot2,SIGNAL(toggleWindowMode(PlotAndDump*)), this, SLOT(toggleWindowModes(PlotAndDump*)));
+    connect(parser, SIGNAL(addTag(QString, double)), plot2, SLOT(addTag(QString, double)));
+    connect(parser,SIGNAL(plot()), plot2, SLOT(plot()));
+
+    if (src->currentWindowMode == src->windowMode::in){
+        ui->tabWidget->removeTab(ui->tabWidget->indexOf(src));
+        plot2->show();
+    }
+    else{
+        ui->tabWidget->addTab(plot2, plot2->data->source);
+    }
+
+
+}
+
+
+
+
+void MainWindow::on_configSerial_clicked()
+{
+    //display a window to collect data for serial plotting
+    SerialInitial* a= new SerialInitial(this);
+    connect(a,SIGNAL(serialConfig(QString,int,QString, long long int)),this,SLOT(setSerialConfig(QString,int,QString, long long int)));
+    a->setModal(true);
+    a->show();
+}
+
+
+void MainWindow::setSerialConfig(QString portName, int baudRate, QString fileLocation, long long int loopTime){
+    Q_INIT_RESOURCE(resources);
+    QFile serialConfig("serialConfig.txt");
+    serialConfig.open(QIODevice::WriteOnly);
+    serialConfig.write(portName.toUtf8());
+    serialConfig.write("\n");
+    serialConfig.write((new QString(baudRate))->toUtf8());
+    serialConfig.write("\n");
+    serialConfig.write(fileLocation.toUtf8());
+    serialConfig.write("\n");
+    serialConfig.write((new QString((int)loopTime))->toUtf8());
+    serialConfig.write("\n");
+    serialConfig.flush();
+    serialConfig.close();
+}
+
+void MainWindow::on_startSerial_clicked()
+{
+    port= new Serial();
+    QFile serialConfig("serialConfig.txt");
+    QString portName, fileLocation;
+    int baudRate, loopTime;
+    serialConfig.open(QFile::ReadOnly);
+    portName = serialConfig.readLine().trimmed();
+    baudRate = serialConfig.readLine().toInt();
+    fileLocation = serialConfig.readLine().trimmed();
+    loopTime = serialConfig.readLine().toInt();
+
+    DataStorage::fileLocation=fileLocation+"/" + QDateTime::currentMSecsSinceEpoch()+"/";
+    stringParserThread = new QThread;
+    parser = new StringParser(loopTime, portName);
+    parser->moveToThread(stringParserThread);
+    stringParserThread->start();
+
+
+    //connecting signals and slots
+    connect(port,SIGNAL(written(int)),parser,SLOT(read(int)));  //Signal-slot to fascilitate serial telling the stringparse to read
+    connect(parser,StringParser::newGraph,this,MainWindow::newGraph);   //Signal-slot to let stringParser to instruct mainwindow to create a new graph
+    connect(parser,StringParser::otherData,this,MainWindow::otherData);
+
+    port->start(portName, baudRate);
 }

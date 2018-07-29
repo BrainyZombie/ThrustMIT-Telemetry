@@ -8,6 +8,8 @@
 #include <QTextStream>
 #include <QMap>
 #include <datastorage.h>
+#include <gpsdatastorage.h>
+#include <gpsparser.h>
 
 class StringParser : public QObject
 {
@@ -15,14 +17,15 @@ class StringParser : public QObject
 
 public:
     QString serialData2;
-    StringParser(long long time);
+    StringParser(long long time, QString source);
 private:
+    QString source;
     QString serialData;
     QString currentStream;
     DataStorage data;
     QFile* file;
     QTextStream* stream;
-    int sensor, X, Y, Z, T, W, nextLine, delim1, delim2;
+    int sensor, X, Y, Z, T, W, nextLine, delim1, delim2, GPS;
     double X2, Y2, Z2, T2, W2;
     struct dataPoint{
         ParsedDataStorage* data;
@@ -40,6 +43,9 @@ private:
     long long int loopTime = 0;
     long long int lastTime = 0;
     int loopNo = 0;
+    GPSDataStorage *gpsData;
+    GPSParser *gpsParser;
+    QThread *gpsThread;
     void writeRaw();
     void writeAndPlot();
 signals:
@@ -47,6 +53,7 @@ signals:
     void otherData(QString);
     PlotAndDump* newGraph(int, StringParser*, ParsedDataStorage*, PlotAndDump**);
     void addTag(QString, double);
+    void gpsWritten();
 
 public slots:
     void read(int mode = 0);

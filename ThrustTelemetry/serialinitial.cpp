@@ -28,21 +28,14 @@ void SerialInitial::on_buttonBox_accepted()
             check=true;
 
     if (name!=NULL&&Baud!=NULL&&fileLocation!=""&&check){
-        port= new Serial();
         QDir(fileLocation).mkdir(".");
     }
-    else{
-        port=NULL;}
 
-    emit serialConfig(port,name,Baud.toInt(),fileLocation, loopTime.toLongLong());
+    emit serialConfig(name,Baud.toInt(),fileLocation, loopTime.toLongLong());
 }
 
 
 void SerialInitial::on_File_clicked()
 {
-    fileLocationIntermediate=QFileDialog::getExistingDirectory(this,"Path to save data to",QDir::homePath());
-    if (fileLocationIntermediate!=""){
-        fileLocation=fileLocationIntermediate+"/"+QString("%1").arg(QDateTime::currentSecsSinceEpoch())+"/";
-        QMessageBox::information(this,"File location","Files will save in "+fileLocation);
-    }
+    fileLocation=QFileDialog::getExistingDirectory(this,"Path to save data to",QDir::homePath());
 }

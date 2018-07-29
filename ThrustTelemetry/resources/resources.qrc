@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/">
+        <file>logo.png</file>
+        <file>logo2.jpg</file>
+        <file>logo2.png</file>
+        <file>popIn.png</file>
+        <file>popOut.png</file>
+        <file>serialConfig.txt</file>
+    </qresource>
+</RCC>

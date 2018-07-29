@@ -1,8 +1,8 @@
 #include "parseddatastorage.h"
 
-ParsedDataStorage::ParsedDataStorage(QString file)
+ParsedDataStorage::ParsedDataStorage(QString source)
 {
-    fileLocation=file;
+    this->source = source;
 
     X.reserve(20000);
     Y.reserve(20000);

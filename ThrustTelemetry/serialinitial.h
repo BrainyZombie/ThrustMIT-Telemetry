@@ -27,14 +27,12 @@ private slots:
     void on_File_clicked();
 
 signals:
-    void serialConfig(Serial*,QString,int,QString, long long int);
+    void serialConfig(QString,int,QString, long long int);
 
 private:
     Ui::SerialInitial *ui;
-    Serial* port;
     QFileDialog* file;
     QString fileLocation;
-    QString fileLocationIntermediate;
 };
 
 #endif // SERIALINITIAL_H

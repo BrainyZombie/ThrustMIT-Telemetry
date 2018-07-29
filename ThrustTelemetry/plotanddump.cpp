@@ -9,22 +9,63 @@ PlotAndDump::PlotAndDump(int mode, ParsedDataStorage* data) :
   ui->setupUi(this);
     this->mode=mode;
     this->data=data;
-  lenTarget=200;
+  currentWindowMode = windowMode::in;
+  toggleWindowModeIcon= new const QIcon(":/popOut.png");
+
+  lenTarget=1000;
   lower=0;
   upper=0;
+  position=0;
 
-  X.reserve(20000);
-  Y.reserve(20000);
-  Z.reserve(20000);
-  W.reserve(20000);
-  T.reserve(20000);
+  X.reserve(10000);
+  Y.reserve(10000);
+  Z.reserve(10000);
+  W.reserve(10000);
+  T.reserve(10000);
 
   graphAreaSetup(data);
   UISetup();
-  connect(ui->graphArea, SIGNAL(mouseMove(QMouseEvent*)), this,SLOT(updateMousePosition(QMouseEvent*)));
   connect(ui->graphArea, SIGNAL(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)), this, SLOT(legendClick2(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)));
+}
 
-  this->setVisible(true);
+PlotAndDump::PlotAndDump(PlotAndDump* src) :
+    QDialog(0),
+    ui(new Ui::PlotAndDump)
+  {
+    ui->setupUi(this);
+
+  mode=src->mode;
+  data=src->data;
+  if (src->currentWindowMode == windowMode::in){
+      currentWindowMode = windowMode::out;
+      toggleWindowModeIcon= new const QIcon(":/popIn.png");
+  }
+  else{
+      currentWindowMode = windowMode::in;
+      toggleWindowModeIcon= new const QIcon(":/popOut.png");
+  }
+
+  lenTarget=src->lenTarget;
+  lower=src->lower;
+  upper=src->upper;
+
+  total2=0;
+  lenTarget=src->lenTarget;
+  range=src->range;
+  lower=src->lower;
+  upper=src->upper;
+  position=src->position;
+
+  X.append(src->X);
+  Y.append(src->Y);
+  Z.append(src->Z);
+  W.append(src->W);
+  T.append(src->T);
+
+  graphAreaSetup(data);
+  UISetup();
+  connect(ui->graphArea, SIGNAL(legendClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)), this, SLOT(legendClick2(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)));
+  plot();
 }
 
 
@@ -60,7 +101,7 @@ void PlotAndDump::graphAreaSetup(ParsedDataStorage* data)
 {
 
     ui->graphArea->setInteraction(QCP::iSelectLegend);
-    ui->graphArea->xAxis->setLabel(data->fileLocation.mid(data->fileLocation.length()-8,4));
+    ui->graphArea->xAxis->setLabel(data->source);
     ui->graphArea->legend->setVisible(true);
     ui->graphArea->legend->setSelectableParts(QCPLegend::spItems);
       QFont legendFont;
@@ -70,19 +111,19 @@ void PlotAndDump::graphAreaSetup(ParsedDataStorage* data)
 
 void PlotAndDump::UISetup()
 {
-    ui->sizeSlider->setRange(50,1000);
+    ui->sizeSlider->setRange(500,10000);
     ui->sizeSlider->setSliderPosition(lenTarget);
     ui->sizeText->setText(QString::number(lenTarget));
 
-    ui->topPaddingSlider->setRange(-1000,1000);
+    ui->topPaddingSlider->setRange(-10000,10000);
     ui->topPaddingSlider->setSliderPosition(upper);
     ui->topPaddingText->setText(QString::number(upper));
 
-    ui->bottomPaddingSlider->setRange(-1000,1000);
+    ui->bottomPaddingSlider->setRange(-10000,10000);
     ui->bottomPaddingSlider->setSliderPosition(lower);
     ui->bottomPaddingText->setText(QString::number(lower));
 
-    ui->scroll->setSliderPosition(1);
+    ui->windowModeToggleButton->setIcon(*toggleWindowModeIcon);
 }
 
 void PlotAndDump::updateMousePosition(QMouseEvent *event){
@@ -200,6 +241,8 @@ void PlotAndDump::graphSetup()
         ui->clear->setEnabled(false);
         ui->clear->setHidden(true);
     }
+    connect(ui->graphArea, SIGNAL(mouseMove(QMouseEvent*)), this,SLOT(updateMousePosition(QMouseEvent*)));
+
 }
 
 void PlotAndDump::setGraphData()
@@ -239,7 +282,7 @@ void PlotAndDump::updateUIRanges()
 
         if (ui->scroll->value() == ui->scroll->maximum()){
             ui->scroll->setRange(0,T.length()-lenTarget);
-            ui->scroll->setSliderPosition(position = ui->scroll->maximum());
+            position = ui->scroll->maximum();
         }
         else{
             ui->scroll->setRange(0,T.length()-lenTarget);
@@ -250,6 +293,7 @@ void PlotAndDump::updateUIRanges()
 
         ui->scroll->setRange(0,T.length()-lenTarget);
     }
+    ui->scroll->setSliderPosition(position);
 }
 
 
@@ -297,15 +341,15 @@ void PlotAndDump::plotGraph(){
     ui->graphArea->update();
 }
 
+
 void PlotAndDump::quit(){
-    qDebug()<<"close";
-    this->close();
+    close();
 }
 
 void PlotAndDump::on_sizeSlider_sliderMoved(int position)
 {
     lenTarget=position;
-    ui->sizeText->setText(QString::number(position));
+    ui->sizeText->setText(QString::number(lenTarget));
     if (mode==3||mode==4){
         ui->scroll->setRange(0,T.length()-lenTarget);
         plot();
@@ -374,4 +418,14 @@ void PlotAndDump::on_scroll_sliderMoved(int position)
 {
     this->position=position;
     plot();
+}
+
+void PlotAndDump::on_windowModeToggleButton_clicked()
+{
+    emit toggleWindowMode(this);
+
+    qDebug()<<2;
+    close();
+
+    qDebug()<<3;
 }

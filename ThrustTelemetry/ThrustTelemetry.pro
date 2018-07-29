@@ -31,8 +31,9 @@ SOURCES += \
     parseddatastorage.cpp \
     plotanddump.cpp \
     qcustomplot.cpp \
-    fileinitial.cpp \
-    axistag.cpp
+    axistag.cpp \
+    gpsparser.cpp \
+    gpsdatastorage.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -43,13 +44,20 @@ HEADERS += \
     parseddatastorage.h \
     plotanddump.h \
     qcustomplot.h \
-    fileinitial.h \
-    axistag.h
+    axistag.h \
+    gpsparser.h \
+    gpsdatastorage.h
 
 FORMS += \
         mainwindow.ui \
     serialinitial.ui \
-    plotanddump.ui \
-    fileinitial.ui
+    plotanddump.ui
+
+RESOURCES += \
+    resources/resources.qrc
+
+DISTFILES += \
+    resources/popIn.png \
+    resources/popOut.png
 
 

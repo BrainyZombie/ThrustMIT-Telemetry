@@ -7,7 +7,7 @@
 class ParsedDataStorage
 {
 public:
-    ParsedDataStorage(QString file);
+    ParsedDataStorage(QString source);
     bool write(QVector<double>*,QVector<double>*,QVector<double>*,QVector<double>*);
     bool read(QVector<double>*,QVector<double>*,QVector<double>*,QVector<double>*);
     bool write(QVector<double>*,QVector<double>*);
@@ -17,7 +17,7 @@ public:
     QVector<double> Y;
     QVector<double> Z;
     QVector<double> W;
-    QString fileLocation;
+    QString source;
     QMutex mutex;
 };
 
