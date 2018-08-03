@@ -10,6 +10,7 @@ StringParser::StringParser(long long int time, QString source)
     loopTime = time;
     loopNo = 0;
     this->source = source;
+    unplottedPoints = 0;
     gpsParser = nullptr;
     gpsData = nullptr;
 }
@@ -74,6 +75,7 @@ void StringParser::read(int mode){
                         l++;}
                 }
                 current=map[currentStream];
+                unplottedPoints++;
             }
             if (flag==1){
                 X2=serialData.mid(X+1,Y-X-1).toDouble(&ok);
@@ -125,7 +127,6 @@ void StringParser::read(int mode){
 
 
                 //handling of GPS data
-                qDebug()<<GPS<<nextLine;
                 if (GPS<nextLine && GPS!=-1){
                     if (gpsParser==nullptr){
                         gpsData = new GPSDataStorage();
@@ -142,12 +143,17 @@ void StringParser::read(int mode){
                 }
             }
             serialData.remove(0,nextLine+1);
+
+            if (unplottedPoints >= 1000){
+                writeAndPlot();
+            }
         }
     }while(flag!=-1);
     writeAndPlot();
 }
 
 void StringParser::writeAndPlot(){
+    unplottedPoints = 0;
     for (auto e : map.keys()){
         current=map[e];
         if (current->mode==1){

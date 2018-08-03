@@ -31,7 +31,7 @@ void SerialInitial::on_buttonBox_accepted()
         QDir(fileLocation).mkdir(".");
     }
 
-    emit serialConfig(name,Baud.toInt(),fileLocation, loopTime.toLongLong());
+    emit serialConfig(name,Baud,fileLocation, loopTime);
 }
 
 

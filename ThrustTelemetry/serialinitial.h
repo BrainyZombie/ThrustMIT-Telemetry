@@ -27,7 +27,7 @@ private slots:
     void on_File_clicked();
 
 signals:
-    void serialConfig(QString,int,QString, long long int);
+    void serialConfig(QString,QString,QString,QString);
 
 private:
     Ui::SerialInitial *ui;

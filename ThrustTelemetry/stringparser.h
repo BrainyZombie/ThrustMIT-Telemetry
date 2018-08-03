@@ -46,6 +46,7 @@ private:
     GPSDataStorage *gpsData;
     GPSParser *gpsParser;
     QThread *gpsThread;
+    int unplottedPoints;
     void writeRaw();
     void writeAndPlot();
 signals:

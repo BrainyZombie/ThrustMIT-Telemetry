@@ -14,6 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     port=NULL;
     data = new DataStorage;
     resize(QGuiApplication::primaryScreen()->availableSize()*4/5);
+    //launchMap(QString::number(52),QString::number(0),QString::number(0));
 }
 
 void MainWindow::on_File_clicked(){
@@ -29,7 +30,7 @@ void MainWindow::setFileConfig(QList<QUrl> files){
     for (QUrl e: files){
         stringParserThread = new QThread;
         file = new QFile(e.toLocalFile());
-        file->open(QIODevice::ReadWrite);
+        file->open(QIODevice::ReadOnly);
 
         //check for value after which time field loops back to zero, I.E. max value of time
         QString checkLoopTime = file->readLine();
@@ -56,6 +57,7 @@ void MainWindow::setFileConfig(QList<QUrl> files){
         stringParserThread->start();
 
         //read the whole file and send it to the parser
+        data->fileLocation = e.path().mid(1,e.path().lastIndexOf("/"));
         while(!data->serialRawWrite(file->readAll()));
         emit done(2);
         data = new DataStorage;
@@ -88,15 +90,7 @@ void MainWindow::otherData(QString data){
     unplottedData->appendPlainText(data);
 }
 
-void MainWindow::launchMap()
-{
-    QObject *parent2 = new QObject();
-    QString program = "C:/Program Files/Google/Google Earth Pro/client/googleearth.exe";
-    QStringList arguments;
 
-    QProcess *myProcess = new QProcess(parent2);
-    myProcess->start(program, arguments);
-}
 
 void MainWindow::toggleWindowModes(PlotAndDump *src)
 {
@@ -130,23 +124,23 @@ void MainWindow::on_configSerial_clicked()
 {
     //display a window to collect data for serial plotting
     SerialInitial* a= new SerialInitial(this);
-    connect(a,SIGNAL(serialConfig(QString,int,QString, long long int)),this,SLOT(setSerialConfig(QString,int,QString, long long int)));
+    connect(a,SIGNAL(serialConfig(QString,QString,QString,QString)),this,SLOT(setSerialConfig(QString,QString,QString,QString)));
     a->setModal(true);
     a->show();
 }
 
 
-void MainWindow::setSerialConfig(QString portName, int baudRate, QString fileLocation, long long int loopTime){
+void MainWindow::setSerialConfig(QString portName, QString baudRate, QString fileLocation, QString loopTime){
     Q_INIT_RESOURCE(resources);
     QFile serialConfig("serialConfig.txt");
-    serialConfig.open(QIODevice::WriteOnly);
-    serialConfig.write(portName.toUtf8());
+    qDebug()<<serialConfig.open(QIODevice::WriteOnly);
+    qDebug()<<(serialConfig.write(portName.toLatin1()));
     serialConfig.write("\n");
-    serialConfig.write((new QString(baudRate))->toUtf8());
+    qDebug()<<(serialConfig.write(baudRate.toLatin1()));
     serialConfig.write("\n");
-    serialConfig.write(fileLocation.toUtf8());
+    serialConfig.write(fileLocation.toLatin1());
     serialConfig.write("\n");
-    serialConfig.write((new QString((int)loopTime))->toUtf8());
+    serialConfig.write(loopTime.toLatin1());
     serialConfig.write("\n");
     serialConfig.flush();
     serialConfig.close();
@@ -154,18 +148,19 @@ void MainWindow::setSerialConfig(QString portName, int baudRate, QString fileLoc
 
 void MainWindow::on_startSerial_clicked()
 {
+    qDebug()<<"started";
     port= new Serial();
     QFile serialConfig("serialConfig.txt");
     QString portName, fileLocation;
     int baudRate, loopTime;
     serialConfig.open(QFile::ReadOnly);
-    portName = serialConfig.readLine().trimmed();
-    baudRate = serialConfig.readLine().toInt();
-    fileLocation = serialConfig.readLine().trimmed();
-    loopTime = serialConfig.readLine().toInt();
+    qDebug()<<(portName = serialConfig.readLine().trimmed());
+    qDebug()<<(baudRate = serialConfig.readLine().simplified().toInt());
+    qDebug()<<(fileLocation = serialConfig.readLine().trimmed());
+    qDebug()<<(loopTime = serialConfig.readLine().simplified().toInt());
 
     DataStorage::fileLocation=fileLocation+"/" + QDateTime::currentMSecsSinceEpoch()+"/";
-    stringParserThread = new QThread;
+    stringParserThread = new QThread();
     parser = new StringParser(loopTime, portName);
     parser->moveToThread(stringParserThread);
     stringParserThread->start();

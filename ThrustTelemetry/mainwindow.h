@@ -24,7 +24,6 @@ public:
     //Creates a new graph that accesses data from provided parsedDataStorage class and sets *dest to pointer to the graph
     void newGraph(int, StringParser*, ParsedDataStorage*, PlotAndDump **dest);
     void otherData(QString);
-    void launchMap();
 
 public slots:
     void toggleWindowModes(PlotAndDump* src);
@@ -33,7 +32,7 @@ private slots:
     void on_File_clicked();
 
     //initializes serial class with passed arguments, creates and transfers objects to respective threads
-    void setSerialConfig(QString, int, QString, long long int);
+    void setSerialConfig(QString, QString, QString, QString);
 
 
     void on_configSerial_clicked();
