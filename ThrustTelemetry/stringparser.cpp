@@ -19,10 +19,10 @@ void StringParser::writeRaw(){
     if (file==NULL){
         file= new QFile(data.fileLocation+"RAW");
         file->open(QIODevice::ReadWrite | QIODevice::Append);
-        qDebug()<<data.fileLocation+"RAW";
     }
     if(stream==NULL){
         stream=new QTextStream(file);
+        (*stream)<<"Time:"<<QString::number(loopTime)<<"\r\n";
     }
     (*stream)<<serialData2;
     stream->flush();
