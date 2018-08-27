@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QDebug>
 #include<QFile>
+#include <QThread>
 #include "gpsdatastorage.h"
 
 class GPSParser : public QObject

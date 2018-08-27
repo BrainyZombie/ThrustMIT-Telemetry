@@ -8,7 +8,7 @@ GPSDataStorage::GPSDataStorage()
 bool GPSDataStorage::write(QString dataInput)
 {
     if (m.tryLock()){
-        gpsData.append(dataInput);
+        gpsData.push_back(dataInput);
         m.unlock();
         return true;
     }

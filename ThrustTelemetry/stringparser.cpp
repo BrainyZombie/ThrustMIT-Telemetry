@@ -19,10 +19,10 @@ void StringParser::writeRaw(){
     if (file==NULL){
         file= new QFile(data.fileLocation+"RAW");
         file->open(QIODevice::ReadWrite | QIODevice::Append);
+        qDebug()<<data.fileLocation+"RAW";
     }
     if(stream==NULL){
         stream=new QTextStream(file);
-        (*stream)<<"Time:"<<QString::number(loopTime)<<"\r\n";
     }
     (*stream)<<serialData2;
     stream->flush();
@@ -44,7 +44,7 @@ void StringParser::read(int mode){
         T=serialData.indexOf('T');
         W=serialData.indexOf('W');
         nextLine=serialData.indexOf('\n');
-        GPS=serialData.left(nextLine+1).indexOf("$GP");
+        GPS=serialData.left(nextLine+1).indexOf("$GN");
 
 
         if (sensor==4&&X==5&&Y>X&&Z>Y&&T>Z&&nextLine>T){
@@ -139,7 +139,6 @@ void StringParser::read(int mode){
                     while (!gpsData->write(serialData.mid(GPS,nextLine-GPS)))
                         QThread::usleep(1);
 
-                    emit(gpsWritten());
                 }
             }
             serialData.remove(0,nextLine+1);
@@ -150,6 +149,7 @@ void StringParser::read(int mode){
         }
     }while(flag!=-1);
     writeAndPlot();
+    emit(gpsWritten());
 }
 
 void StringParser::writeAndPlot(){

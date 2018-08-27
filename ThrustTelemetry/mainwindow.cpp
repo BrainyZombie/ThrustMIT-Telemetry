@@ -159,7 +159,11 @@ void MainWindow::on_startSerial_clicked()
     qDebug()<<(fileLocation = serialConfig.readLine().trimmed());
     qDebug()<<(loopTime = serialConfig.readLine().simplified().toInt());
 
-    DataStorage::fileLocation=fileLocation+"/" + QDateTime::currentMSecsSinceEpoch()+"/";
+    qDebug()<<QDateTime::currentSecsSinceEpoch();
+    DataStorage::fileLocation=fileLocation+"/" + QString::number(QDateTime::currentSecsSinceEpoch())+"/";
+    QDir a;
+    a.mkpath(DataStorage::fileLocation);
+    qDebug()<<DataStorage::fileLocation;
     stringParserThread = new QThread();
     parser = new StringParser(loopTime, portName);
     parser->moveToThread(stringParserThread);

@@ -4,22 +4,26 @@
 GPSParser::GPSParser(GPSDataStorage *dataStore, QString location)
 {
     this->dataStore = dataStore;
-    fileLocation = location.toUtf8()+"/GPS.kml";
+    fileLocation = location.toUtf8()+"GPS.kml";
+    qDebug()<<fileLocation;
     firstPoint = true;
 }
 
 void GPSParser::gpsParse()
 {
-    while(dataStore->read(&data));
+    while(!dataStore->read(&data)){
+        QThread::msleep(10);
+    };
     for (QString i: data){
         i=i.simplified();
         QByteArray ba = i.toLatin1();
         char *nmea = ba.data();
         if(parseNMEA(nmea)){
-            qDebug()<<nmea;
+            qDebug()<<i;
             editKML();
         }
     }
+    data.clear();
 }
 
 bool GPSParser::parseNMEA(char* nmea)
@@ -44,8 +48,7 @@ bool GPSParser::parseNMEA(char* nmea)
       long minutes;
       char degreebuff[10];
       // look for a few common sentences
-      if (strstr(nmea, "$GPGGA")) {
-          return false;
+      if (strstr(nmea, "$GNGGA")||strstr(nmea, "$GNGGA")) {
         // found GGA
         char *p = nmea;
         // get time
@@ -150,7 +153,7 @@ bool GPSParser::parseNMEA(char* nmea)
         }
         return true;
       }
-      if (strstr(nmea, "$GPRMC")) {
+      if (strstr(nmea, "$GNRMC")||strstr(nmea, "$GPRMC")) {
        // found RMC
         char *p = nmea;
 
@@ -290,14 +293,12 @@ void GPSParser::editKML()
 
 void GPSParser::initKml(){
     kml.setFileName(fileLocation);
-    kmlPre = "<?xml version='1.0' encoding='UTF-8'?><kml xmlns='http://earth.google.com/kml/2.2'><Document><Placemark><name>flight</name><LineString><extrude>1</extrude><altitudeMode>relativeToGround</altitudeMode><coordinates>";
+    kmlPre = "<?xml version='1.0' encoding='UTF-8'?><kml xmlns='http://earth.google.com/kml/2.2'><Document><Placemark><name>flight</name><LineString><extrude>1</extrude><tessellate>1</tessellate><altitudeMode>relativeToGround</altitudeMode><coordinates>";
     kmlPost = "</coordinates></LineString></Placemark></Document></kml>";
     updateKml();
 }
 void GPSParser::updateKml(){
-    qDebug()<<longitude_fixed;
-    qDebug()<<QString::number((int)longitude_fixed/10000000, 'g', 10) + "." + QString::number((int)longitude_fixed%10000000, 'g', 10);
-    kmlMain.append( QString::number((int)longitude_fixed/10000000, 'g', 10) + "." + QString::number((int)longitude_fixed%10000000, 'g', 10) + "," + QString::number((int)latitude_fixed/10000000, 'g', 10) + "." + QString::number((int)latitude_fixed%10000000, 'g', 10) + "," + QString::number(altitude, 'g', 10) + "\r\n");
+    kmlMain.append( QString::number((int)longitude_fixed/10000000, 'g', 10) + "." + QString::number((int)longitude_fixed%10000000, 'g', 10) + "," + QString::number((int)latitude_fixed/10000000, 'g', 10) + "." + QString::number((int)latitude_fixed%10000000, 'g', 10) + "," + QString::number(altitude + geoidheight, 'g', 10) + "\r\n");
     kml.open(QIODevice::WriteOnly);
     kml.write(kmlPre.toUtf8());
     kml.write(kmlMain.toUtf8());
@@ -313,19 +314,19 @@ void GPSParser::launchMap()
     QString temp;
     a.open(QIODevice::WriteOnly);
     a.write("<?xml version=\"1.0\" encoding=\"utf-8\" ?><kml xmlns=\"http://earth.google.com/kml/2.1\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\"><Document><gx:Tour><name>Play me!</name><gx:Playlist><gx:FlyTo><gx:duration>0.1</gx:duration><LookAt><longitude>");
-    temp = QString("%1").arg(longitude_double/10000000);
+    temp = QString::number((int)longitude_fixed/10000000, 'g', 10) + "." + QString::number((int)longitude_fixed%10000000, 'g', 10);
     a.write(temp.toUtf8());
     a.write("</longitude><latitude>");
-    temp = QString("%1").arg(latitude_double/10000000);
+    temp =  QString::number((int)latitude_fixed/10000000, 'g', 10) + "." + QString::number((int)latitude_fixed%10000000, 'g', 10);
     a.write(temp.toUtf8());
     a.write("</latitude><altitude>");
     temp = QString::number(altitude);
     a.write(temp.toUtf8());
-    a.write("</altitude><heading>112.87</heading><tilt>68.065</tilt><range>6811.884</range><altitudeMode>absolute</altitudeMode></LookAt></gx:FlyTo></gx:Playlist>\r\n</gx:Tour>");
+    a.write("</altitude><heading>112.87</heading><tilt>68.065</tilt><range>6811.884</range><altitudeMode>relativeToGround</altitudeMode></LookAt></gx:FlyTo></gx:Playlist>\r\n</gx:Tour>");
     a.write("<NetworkLink id=\"thrustMIT\">\r\n<name>thrustMIT</name>\r\n<open>1</open>\r\n<Link>\r\n<href>");
 
     a.write(fileLocation.toUtf8());
-    a.write("</href>\r\n<refreshMode>onInterval</refreshMode>\r\n<refreshInterval>5</refreshInterval>\r\n</Link>\r\n<flyToView>0</flyToView>\r\n</NetworkLink>\r\n</Document>\r\n</kml>");
+    a.write("</href>\r\n<refreshMode>onInterval</refreshMode>\r\n<refreshInterval>1</refreshInterval>\r\n</Link>\r\n<flyToView>0</flyToView>\r\n</NetworkLink>\r\n</Document>\r\n</kml>");
 
 
     a.flush();
