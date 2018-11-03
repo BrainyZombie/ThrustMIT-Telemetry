@@ -260,8 +260,6 @@ bool GPSParser::parseNMEA(char* nmea)
       }
 
       return false;
-
-
 }
 
 uint8_t GPSParser::parseHex(char c) {

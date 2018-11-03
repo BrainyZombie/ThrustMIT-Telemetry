@@ -124,7 +124,7 @@
           <string notr="true">font-size:20px;</string>
          </property>
          <property name="text">
-          <string>PushButton</string>
+          <string>SETUP SERIAL</string>
          </property>
         </widget>
        </item>

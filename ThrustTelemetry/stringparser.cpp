@@ -139,12 +139,14 @@ void StringParser::read(int mode){
                     while (!gpsData->write(serialData.mid(GPS,nextLine-GPS)))
                         QThread::usleep(1);
 
+                    unplottedPoints++;
                 }
             }
             serialData.remove(0,nextLine+1);
 
             if (unplottedPoints >= 1000){
                 writeAndPlot();
+                emit(gpsWritten());
             }
         }
     }while(flag!=-1);
